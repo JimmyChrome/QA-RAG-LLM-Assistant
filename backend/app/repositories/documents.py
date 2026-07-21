@@ -209,9 +209,9 @@ class DocumentRepository:
         document = self.get_document(document_id)
         version = self.get_version(document_id, version_id)
 
-        if version.status not in {VersionStatus.INDEXED, VersionStatus.PENDING}:
+        if version.status != VersionStatus.INDEXED:
             raise ValueError(
-                "Only pending or indexed document versions can be activated."
+                "Only indexed document versions can be activated."
             )
 
         self._activate_version(document, version)

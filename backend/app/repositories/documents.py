@@ -178,7 +178,9 @@ class DocumentRepository:
         self.db.flush()
 
         if make_active:
-            self._activate_version(document, version)
+            raise ValueError(
+                "A newly uploaded version must be indexed before it can be activated."
+            )
 
         self.db.commit()
         self.db.refresh(version)

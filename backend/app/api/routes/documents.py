@@ -149,7 +149,7 @@ async def upload_document_version(
         version = service.register_version(
             document_id,
             payload,
-            make_active=make_active,
+            make_active=False,
         )
 
     except (

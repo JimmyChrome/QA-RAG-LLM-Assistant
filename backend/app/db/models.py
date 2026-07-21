@@ -1,4 +1,4 @@
-"""SQLAlchemy ORM models for document management and indexing."""
+"""SQLAlchemy ORM models for document management, indexing, and conversations."""
 
 from __future__ import annotations
 
@@ -13,6 +13,7 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     Integer,
+    JSON,
     String,
     Text,
     UniqueConstraint,
@@ -57,6 +58,14 @@ class IndexingJobStatus(str, enum.Enum):
     RUNNING = "running"
     COMPLETED = "completed"
     FAILED = "failed"
+
+
+class ConversationRole(str, enum.Enum):
+    """Allowed roles for stored conversation messages."""
+
+    USER = "user"
+    ASSISTANT = "assistant"
+    SYSTEM = "system"
 
 
 class Document(Base):
@@ -257,4 +266,92 @@ class IndexingJob(Base):
 
     document_version: Mapped[DocumentVersion] = relationship(
         back_populates="indexing_jobs",
+    )
+
+
+class Conversation(Base):
+    """Persistent chatbot conversation."""
+
+    __tablename__ = "conversations"
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=new_uuid,
+    )
+    title: Mapped[str] = mapped_column(
+        String(200),
+        nullable=False,
+        default="New conversation",
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+        onupdate=utc_now,
+        index=True,
+    )
+
+    messages: Mapped[list["ConversationMessage"]] = relationship(
+        back_populates="conversation",
+        cascade="all, delete-orphan",
+        order_by="ConversationMessage.sequence_number",
+        passive_deletes=True,
+    )
+
+
+class ConversationMessage(Base):
+    """One stored message belonging to a chatbot conversation."""
+
+    __tablename__ = "conversation_messages"
+    __table_args__ = (
+        UniqueConstraint(
+            "conversation_id",
+            "sequence_number",
+            name="uq_conversation_message_sequence",
+        ),
+        Index(
+            "ix_conversation_messages_conversation_sequence",
+            "conversation_id",
+            "sequence_number",
+        ),
+    )
+
+    id: Mapped[str] = mapped_column(
+        String(36),
+        primary_key=True,
+        default=new_uuid,
+    )
+    conversation_id: Mapped[str] = mapped_column(
+        ForeignKey("conversations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    role: Mapped[ConversationRole] = mapped_column(
+        Enum(ConversationRole, native_enum=False),
+        nullable=False,
+    )
+    content: Mapped[str] = mapped_column(Text, nullable=False)
+    citations: Mapped[list[dict]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=list,
+    )
+    sequence_number: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+    )
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=utc_now,
+    )
+
+    conversation: Mapped[Conversation] = relationship(
+        back_populates="messages",
     )

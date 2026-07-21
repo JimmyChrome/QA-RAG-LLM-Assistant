@@ -8,7 +8,10 @@ from typing import AsyncIterator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.conversations import router as conversations_router
 from app.api.routes.documents import router as documents_router
+from app.api.routes.query import router as query_router
+
 from app.core.config import settings
 from app.core.logging import get_logger, setup_logging
 from app.db.database import initialize_database
@@ -58,6 +61,8 @@ app.add_middleware(
 )
 
 app.include_router(documents_router)
+app.include_router(query_router)
+app.include_router(conversations_router)
 
 
 @app.get("/", tags=["System"])

@@ -9,7 +9,7 @@ from typing import Callable
 from fastapi import Request
 from sqlalchemy.orm import Session
 
-from app.db.repositories.conversation import ConversationRepository
+from backend.app.repositories.conversation import ConversationRepository
 from app.rag.answer_processor import AnswerProcessor
 from app.rag.llm import OllamaLLMProvider
 from app.rag.prompt_builder import PromptBuilder

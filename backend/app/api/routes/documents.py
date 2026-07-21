@@ -31,6 +31,10 @@ from app.services.file_storage import (
     UploadTooLargeError,
 )
 
+from app.api.dependencies import get_vector_store
+from app.rag.vector_store import ChromaVectorStore
+from app.services.document_indexing import DocumentIndexingService
+
 
 logger = get_logger(__name__)
 router = APIRouter(
@@ -170,6 +174,39 @@ async def upload_document_version(
         version.id,
         document_id,
     )
+    return DocumentVersionRead.model_validate(version)
+
+@router.post(
+    "/{document_id}/versions/{version_id}/index",
+    response_model=DocumentVersionRead,
+)
+def index_document_version(
+    document_id: str,
+    version_id: str,
+    db: Session = Depends(get_db),
+    vector_store: ChromaVectorStore = Depends(get_vector_store),
+) -> DocumentVersionRead:
+    """Extract, chunk, embed, and index one document version."""
+    service = DocumentIndexingService(
+        db,
+        vector_store=vector_store,
+    )
+
+    try:
+        version = service.index_version(
+            document_id=document_id,
+            version_id=version_id,
+        )
+    except (DocumentNotFoundError, DocumentVersionNotFoundError) as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Document indexing failed: {exc}",
+        ) from exc
+
     return DocumentVersionRead.model_validate(version)
 
 

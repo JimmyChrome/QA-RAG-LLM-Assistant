@@ -58,24 +58,36 @@ def get_conversation_service(
     finally:
         session.close()
 
+@lru_cache(maxsize=1)
+def get_embedding_provider() -> SentenceTransformerEmbeddingProvider:
+    """Return the shared production embedding provider."""
+    return SentenceTransformerEmbeddingProvider(
+        model_name=settings.embedding_model,
+        device=settings.embedding_device,
+        batch_size=settings.embedding_batch_size,
+        normalize_embeddings=settings.normalize_embeddings,
+    )
+
+
+@lru_cache(maxsize=1)
+def get_vector_store() -> ChromaVectorStore:
+    """Return the shared persistent Chroma vector store."""
+    return ChromaVectorStore(
+        persist_directory=settings.chroma_dir,
+        embedding_provider=get_embedding_provider(),
+        collection_name=settings.chroma_collection,
+    )
+
 
 @lru_cache(maxsize=1)
 def _build_default_rag_query_service() -> RAGQueryService:
     """Construct the production query service."""
-    embedding_provider = SentenceTransformerEmbeddingProvider(
-    model_name=settings.embedding_model,
-    device=settings.embedding_device,
-    batch_size=settings.embedding_batch_size,
-    normalize_embeddings=settings.normalize_embeddings,
-)
-
-    vector_store = ChromaVectorStore(
-        persist_directory=settings.chroma_dir,
-        embedding_provider=embedding_provider,
-        collection_name=settings.chroma_collection,
-)
+    vector_store = get_vector_store()
     retriever = Retriever(vector_store=vector_store)
-    llm_provider = OllamaLLMProvider(model="qwen3:8b")
+
+    llm_provider = OllamaLLMProvider(
+        model=settings.ollama_model,
+    )
 
     return RAGQueryService(
         retriever=retriever,

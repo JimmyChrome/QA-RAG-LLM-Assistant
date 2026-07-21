@@ -7,7 +7,7 @@ from collections.abc import Sequence
 from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session, selectinload
 
-from app.db.models.conversation import Conversation, ConversationMessage
+from app.db.models import Conversation, ConversationMessage
 
 
 class ConversationRepository:

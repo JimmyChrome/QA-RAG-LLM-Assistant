@@ -1,5 +1,7 @@
 # QA-RAG-LLM-Assistant
 
+*Checkpoint*
+
 970811
 
 .\.venv\Scripts\Activate.ps1
@@ -15,4 +17,3 @@ http://127.0.0.1:8000/api/v1/openapi.json
 http://127.0.0.1:8000/
 
 http://127.0.0.1:8000/api/v1/health
-

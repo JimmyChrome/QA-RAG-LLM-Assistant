@@ -18,6 +18,9 @@ from app.rag.vector_store import ChromaVectorStore
 from app.services.conversation import ConversationService
 from app.services.rag_query import RAGQueryService
 
+from app.core.config import settings
+from app.rag.embeddings import SentenceTransformerEmbeddingProvider
+
 
 def get_rag_query_service(request: Request) -> RAGQueryService:
     """Return an app override or lazily construct the query service."""
@@ -59,7 +62,18 @@ def get_conversation_service(
 @lru_cache(maxsize=1)
 def _build_default_rag_query_service() -> RAGQueryService:
     """Construct the production query service."""
-    vector_store = ChromaVectorStore()
+    embedding_provider = SentenceTransformerEmbeddingProvider(
+    model_name=settings.embedding_model,
+    device=settings.embedding_device,
+    batch_size=settings.embedding_batch_size,
+    normalize_embeddings=settings.normalize_embeddings,
+)
+
+    vector_store = ChromaVectorStore(
+        persist_directory=settings.chroma_dir,
+        embedding_provider=embedding_provider,
+        collection_name=settings.chroma_collection,
+)
     retriever = Retriever(vector_store=vector_store)
     llm_provider = OllamaLLMProvider(model="qwen3:8b")
 

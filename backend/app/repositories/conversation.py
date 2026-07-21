@@ -9,6 +9,8 @@ from sqlalchemy.orm import Session, selectinload
 
 from app.db.models import Conversation, ConversationMessage
 
+from datetime import datetime, timezone
+
 
 class ConversationRepository:
     """Persist and retrieve conversation records."""
@@ -52,18 +54,22 @@ class ConversationRepository:
                 ConversationMessage.conversation_id == conversation_id
             )
         )
+
+        now = datetime.now(timezone.utc)
+
         message = ConversationMessage(
             conversation_id=conversation_id,
             role=role,
             content=content,
             citations=citations or [],
             sequence_number=(highest_sequence or 0) + 1,
+            created_at=now,
         )
         self._session.add(message)
 
         conversation = self._session.get(Conversation, conversation_id)
         if conversation is not None:
-            conversation.updated_at = message.created_at
+            conversation.updated_at = now
 
         self._session.flush()
         return message
